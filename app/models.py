@@ -27,7 +27,7 @@ class GrupoDispositivos(Base):
 
     # Relación muchos-a-muchos con Dispositivo:
     dispositivos: Mapped[list["Dispositivo"]] = relationship(
-        secondary="dispositivos_grupos", back_populates="grupos_dispositivos")
+        secondary="dispositivos_agrupados", back_populates="grupos_dispositivos")
 
 class Dispositivo(Base):
     __tablename__ = "dispositivos"
@@ -51,7 +51,7 @@ class Dispositivo(Base):
     
     # Relación muchos-a-muchos con GrupoDispositivos:
     grupos_dispositivos: Mapped[list["GrupoDispositivos"]] = relationship(
-        secondary="dispositivos_grupos", back_populates="dispositivos")
+        secondary="dispositivos_agrupados", back_populates="dispositivos")
 
 class Sensor(Base):
     __tablename__ = "sensores"
@@ -91,8 +91,8 @@ class LogEstadoDispositivo(Base):
     dispositivo: Mapped["Dispositivo"] = relationship(back_populates="logs_estado_dispositivo")
 
 # Relacion Muchos a Muchos entre Dispositivo y GrupoDispositivos
-class DispositivosGrupos(Base):
-    __tablename__ = "dispositivos_grupos"
+class DispositivosAgrupados(Base):
+    __tablename__ = "dispositivos_agrupados"
 
     dispositivo_id: Mapped[int] = mapped_column(ForeignKey("dispositivos.id"), primary_key=True)
     grupo_dispositivo_id: Mapped[int] = mapped_column(ForeignKey("grupos_dispositivos.id"), primary_key=True)

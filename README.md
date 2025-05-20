@@ -2,7 +2,7 @@
 
 # Configuración inicial
 
-La configuración inicial ya asume que el profesor tiene conocimientos previos de lo que realiza cada comando a utilizar y que ha instalado con anterioridad lo que se requiere para que este proyecto funcione, excepto en el caso de Alembic.
+La configuración inicial ya asume que el profesor tiene conocimientos previos de lo que realiza cada comando a utilizar y que ha instalado con anterioridad lo que se requiere para que este proyecto funcione, excepto en el caso de Alembic que será un poco explicado.
 
 ## Clonar el repositorio
 
