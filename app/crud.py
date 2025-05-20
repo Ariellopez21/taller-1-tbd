@@ -6,15 +6,15 @@ from litestar import get, post, Controller, patch, delete
 from litestar.di import Provide
 from litestar.dto import DTOData
 from litestar.exceptions import HTTPException
-from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import select, desc
 from sqlalchemy.exc import IntegrityError
 from advanced_alchemy.exceptions import NotFoundError
 from advanced_alchemy.filters import ComparisonFilter, CollectionFilter
 
 from typing import Sequence
 
-from app.models import TipoDispositivo, GrupoDispositivos, Dispositivo
+from app.models import TipoDispositivo, GrupoDispositivos, Dispositivo, DispositivosAgrupados, Sensor, LecturaDato, LogEstadoDispositivo
 from app import dtos
 from app import repositories as repo
 
@@ -103,6 +103,13 @@ class DispositivoController(Controller):
                          ) -> Sequence[Dispositivo]:
         return dispositivo_repo.list()
     
+    @get("/by_type/{tipo_dispositivo_id:int}")
+    async def list_items_by_tipo(self,
+                                 dispositivo_repo: repo.DispositivoRepository,
+                                 tipo_dispositivo_id: int
+                                 ) -> Sequence[Dispositivo]:
+        return dispositivo_repo.list(ComparisonFilter("tipo_dispositivo_id","eq",value=tipo_dispositivo_id))
+
     @post("/", dto=dtos.DispositivoCreateDTO)
     async def create_item(self, 
                           dispositivo_repo: repo.DispositivoRepository, 
@@ -115,7 +122,7 @@ class DispositivoController(Controller):
         except Exception as e:
             print("ERROR EN CREATE_ITEM:", e)
             raise HTTPException(status_code=500, detail=str(e))
-        
+    ''' 
     @patch("/{dispositivo_id:int}", dto=dtos.DispositivoCreateDTO)
     async def asociar_grupo(self,
                             dispositivo_id: int,
@@ -141,4 +148,185 @@ class DispositivoController(Controller):
             return dispositivo
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error al asociar grupo: {e}")
+    '''
 
+class DispositivosAgrupadosController(Controller):
+    path = '/dispositivos_agrupados'
+    tags = ["Dispositivo/Grupo"]
+    return_dto=dtos.DispositivosAgrupadosCreateDTO
+    dependencies = {
+        "dispositivosagrupados_repo": Provide(repo.provide_dispositivosagrupados_repo)
+    }
+
+    @get("/all")
+    async def list_items(self, 
+                         dispositivosagrupados_repo: repo.DispositivosAgrupadosRepository
+                         ) -> Sequence[DispositivosAgrupados]:
+        return dispositivosagrupados_repo.list()
+    
+    @get("/by_group/{grupo_dispositivo_id:int}")
+    async def list_items_by_group(self,
+                                  dispositivosagrupados_repo: repo.DispositivosAgrupadosRepository,
+                                  grupo_dispositivo_id: int
+                                  ) -> Sequence[DispositivosAgrupados]:
+        return dispositivosagrupados_repo.list(ComparisonFilter("grupo_dispositivo_id","eq",value=grupo_dispositivo_id))
+
+    @get("/by_device/{dispositivo_id:int}")
+    async def list_items_by_device(self,
+                                  dispositivosagrupados_repo: repo.DispositivosAgrupadosRepository,
+                                  dispositivo_id: int
+                                  ) -> Sequence[DispositivosAgrupados]:
+        return dispositivosagrupados_repo.list(ComparisonFilter("dispositivo_id","eq",value=dispositivo_id))
+
+
+    @post("/{dispositivo_id:int}/{grupo_dispositivo_id:int}", dto=dtos.DispositivosAgrupadosCreateDTO)
+    async def create_item(self, 
+                          dispositivosagrupados_repo: repo.DispositivosAgrupadosRepository, 
+                          data: DTOData[DispositivosAgrupados]
+                          ) -> DispositivosAgrupados:
+        try:
+            return dispositivosagrupados_repo.add(data.create_instance(), auto_commit=True)
+        except IntegrityError:
+            raise HTTPException(status_code=400, detail="Ya existe una asociación entre ese dispositivo y grupo.")
+        except Exception as e:
+            print("ERROR EN CREATE_ITEM:", e)
+            raise HTTPException(status_code=500, detail=str(e))
+        
+    @delete("/{dispositivo_id:int}/{grupo_dispositivo_id:int}")
+    async def delete_item(self, 
+                      dispositivosagrupados_repo: repo.DispositivosAgrupadosRepository,
+                      dispositivo_id: int,
+                      grupo_dispositivo_id: int
+                      ) -> None:
+        stmt = select(DispositivosAgrupados).where(
+            DispositivosAgrupados.dispositivo_id == dispositivo_id,
+            DispositivosAgrupados.grupo_dispositivo_id == grupo_dispositivo_id)
+        result = dispositivosagrupados_repo.session.execute(stmt).scalar_one_or_none()
+
+        if not result:
+            raise HTTPException(status_code=404, detail="Asociación no encontrada.")
+
+        dispositivosagrupados_repo.session.delete(result)
+        dispositivosagrupados_repo.session.commit()
+
+class SensorController(Controller):
+    path = '/sensores'
+    tags = ["Sensor"]
+    return_dto=dtos.SensorReadDTO
+    dependencies = {
+        "sensor_repo": Provide(repo.provide_sensor_repo)
+    }
+
+    @get("/")
+    async def list_items(self, 
+                         sensor_repo: repo.SensorRepository
+                         ) -> Sequence[Sensor]:
+        return sensor_repo.list()
+    
+    @get("/by_device/{dispositivo_id:int}")
+    async def list_items_by_device(self,
+                                  sensor_repo: repo.SensorRepository,
+                                  dispositivo_id: int
+                                  ) -> Sequence[Sensor]:
+        return sensor_repo.list(ComparisonFilter("dispositivo_id","eq",value=dispositivo_id))
+    
+    @post("/", dto=dtos.SensorCreateDTO)
+    async def create_item(self, 
+                          sensor_repo: repo.SensorRepository, 
+                          data: DTOData[Sensor]
+                          ) -> Sensor:
+        try:
+            return sensor_repo.add(data.create_instance(), auto_commit=True)
+        except IntegrityError:
+            raise HTTPException(status_code=400, detail="Ya existe un Sensor con ese nombre.")
+        except Exception as e:
+            print("ERROR EN CREATE_ITEM:", e)
+            raise HTTPException(status_code=500, detail=str(e))
+        
+class LecturaDatoController(Controller):
+    path = '/lecturas_datos'
+    tags = ["Lectura"]
+    return_dto=dtos.LecturaDatoReadDTO
+    dependencies = {
+        "lecturadato_repo": Provide(repo.provide_lecturadato_repo)
+    }
+
+    @get("/")
+    async def list_items(self, 
+                         lecturadato_repo: repo.LecturaDatoRepository
+                         ) -> Sequence[LecturaDato]:
+        return lecturadato_repo.list()
+    
+    @get("/by_sensor/{sensor_id:int}")
+    async def list_items_by_sensor(self,
+                                  lecturadato_repo: repo.LecturaDatoRepository,
+                                  sensor_id: int,
+                                  n: int
+                                  ) -> Sequence[LecturaDato]:
+        stmt = (
+            select(LecturaDato)
+            .where(LecturaDato.sensor_id == sensor_id)
+            .order_by(desc(LecturaDato.timestamp))
+            .limit(n)
+        )
+        result = lecturadato_repo.session.execute(stmt).scalars().all()
+        return result    
+    
+    @post("/", dto=dtos.LecturaDatoCreateDTO)
+    async def create_item(self, 
+                          lecturadato_repo: repo.LecturaDatoRepository, 
+                          data: DTOData[LecturaDato]
+                          ) -> LecturaDato:
+        try:
+            return lecturadato_repo.add(data.create_instance(), auto_commit=True)
+        except IntegrityError:
+            raise HTTPException(status_code=400, detail="Ya existe una Lectura con ese timestamp.")
+        except Exception as e:
+            print("ERROR EN CREATE_ITEM:", e)
+            raise HTTPException(status_code=500, detail=str(e))
+
+class LogEstadoDispositivoController(Controller):
+    path = '/logs_estado_dispositivo'
+    tags = ["Logs"]
+    return_dto=dtos.LogEstadoDispositivoReadDTO
+    dependencies = {
+        "logestadodispositivo_repo": Provide(repo.provide_logestadodispositivo_repo)
+    }
+
+    @get("/")
+    async def list_logs(self, 
+                         logestadodispositivo_repo: repo.LogEstadoDispositivoRepository
+                         ) -> Sequence[LogEstadoDispositivo]:
+        return logestadodispositivo_repo.list()
+    
+    @get("/by_device/{dispositivo_id:int}")
+    async def list_logs_by_device(self,
+                                  logestadodispositivo_repo: repo.LogEstadoDispositivoRepository,
+                                  dispositivo_id: int
+                                  ) -> Sequence[LogEstadoDispositivo]:
+        return logestadodispositivo_repo.list(ComparisonFilter("dispositivo_id","eq",value=dispositivo_id))
+    
+    @post("/", dto=dtos.LogEstadoDispositivoCreateDTO)
+    async def create_log(self, 
+                          logestadodispositivo_repo: repo.LogEstadoDispositivoRepository, 
+                          data: DTOData[LogEstadoDispositivo]
+                          ) -> LogEstadoDispositivo:
+        try:
+            new_log = data.create_instance()
+
+            stmt = (
+                select(LogEstadoDispositivo)
+                .where(LogEstadoDispositivo.dispositivo_id == new_log.dispositivo_id)
+                .order_by(desc(LogEstadoDispositivo.timestamp))
+                .limit(1)
+            )
+            last_log = logestadodispositivo_repo.session.execute(stmt).scalar_one_or_none()
+            
+            if last_log and last_log.estado == new_log.estado:
+                raise HTTPException(status_code=400, detail="El estado ya fue registrado recientemente.")
+
+            logestadodispositivo_repo.add(new_log, auto_commit=True)
+            return new_log
+
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error al registrar log de estado: {e}")

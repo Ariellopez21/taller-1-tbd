@@ -1,5 +1,5 @@
 from advanced_alchemy.repository import SQLAlchemySyncRepository
-from app.models import TipoDispositivo, GrupoDispositivos, Dispositivo
+from app.models import TipoDispositivo, GrupoDispositivos, Dispositivo, DispositivosAgrupados, Sensor, LecturaDato, LogEstadoDispositivo
 from sqlalchemy.orm import Session
 
 '''
@@ -38,3 +38,35 @@ async def provide_dispositivo_repo(db_session: Session) -> DispositivoRepository
     """
     return DispositivoRepository(session=db_session)
 
+class DispositivosAgrupadosRepository(SQLAlchemySyncRepository[DispositivosAgrupados]):
+    model_type = DispositivosAgrupados
+async def provide_dispositivosagrupados_repo(db_session: Session) -> DispositivosAgrupadosRepository:
+    """
+    Provide a SQLAlchemySyncRepository for DispositivosAgrupados.
+    """
+    return DispositivosAgrupadosRepository(session=db_session)
+
+class SensorRepository(SQLAlchemySyncRepository[Sensor]):
+    model_type = Sensor
+async def provide_sensor_repo(db_session: Session) -> SensorRepository:
+    """
+    Provide a SQLAlchemySyncRepository for Sensor.
+    """
+    return SensorRepository(session=db_session)
+
+class LecturaDatoRepository(SQLAlchemySyncRepository[LecturaDato]):
+    model_type = LecturaDato
+
+async def provide_lecturadato_repo(db_session: Session) -> LecturaDatoRepository:
+    """
+    Provide a SQLAlchemySyncRepository for LecturaDato.
+    """
+    return LecturaDatoRepository(session=db_session)
+
+class LogEstadoDispositivoRepository(SQLAlchemySyncRepository[LogEstadoDispositivo]):
+    model_type = LogEstadoDispositivo
+async def provide_logestadodispositivo_repo(db_session: Session) -> LogEstadoDispositivoRepository:
+    """
+    Provide a SQLAlchemySyncRepository for LogEstadoDispositivo.
+    """
+    return LogEstadoDispositivoRepository(session=db_session)

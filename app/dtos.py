@@ -2,7 +2,7 @@
 from advanced_alchemy.extensions.litestar import SQLAlchemyDTOConfig
 from litestar.plugins.sqlalchemy import SQLAlchemyDTO
 
-from app.models import TipoDispositivo, GrupoDispositivos, Dispositivo
+from app.models import TipoDispositivo, GrupoDispositivos, Dispositivo, DispositivosAgrupados, Sensor, LecturaDato, LogEstadoDispositivo
 
 '''
 DataTransferObjects (DTOs): Son clases que se utilizan para definir la estructura de los datos que se envían y reciben en las peticiones HTTP.
@@ -27,3 +27,22 @@ class DispositivoReadDTO(SQLAlchemyDTO[Dispositivo]):
 class DispositivoCreateDTO(SQLAlchemyDTO[Dispositivo]):
     config = SQLAlchemyDTOConfig(exclude={"id","tipo_dispositivo", "sensores", "logs_estado_dispositivo", "grupos_dispositivos"}, partial=True)
 
+# Al solo tener ForeignKeys, no es necesario excluir nada
+class DispositivosAgrupadosCreateDTO(SQLAlchemyDTO[DispositivosAgrupados]):
+    pass
+
+class SensorReadDTO(SQLAlchemyDTO[Sensor]):
+    config = SQLAlchemyDTOConfig(exclude={"dispositivo", "lecturas_datos"}, partial=True)
+class SensorCreateDTO(SQLAlchemyDTO[Sensor]):
+    config = SQLAlchemyDTOConfig(exclude={"id", "dispositivo", "lecturas_datos"}, partial=True)
+
+class LecturaDatoReadDTO(SQLAlchemyDTO[LecturaDato]):
+    config = SQLAlchemyDTOConfig(exclude={"sensor"}, partial=True)
+
+class LecturaDatoCreateDTO(SQLAlchemyDTO[LecturaDato]):
+    config = SQLAlchemyDTOConfig(exclude={"id", "sensor"}, partial=True)
+
+class LogEstadoDispositivoReadDTO(SQLAlchemyDTO[LogEstadoDispositivo]):
+    config = SQLAlchemyDTOConfig(exclude={"dispositivo"}, partial=True)
+class LogEstadoDispositivoCreateDTO(SQLAlchemyDTO[LogEstadoDispositivo]):
+    config = SQLAlchemyDTOConfig(exclude={"id", "dispositivo"}, partial=True)
