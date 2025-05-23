@@ -1,4 +1,4 @@
-from litestar import Litestar
+'''from litestar import Litestar
 from app.database import sqla_plugin
 from app import crud as controllers
 
@@ -12,3 +12,4 @@ app = Litestar(
                     controllers.LogEstadoDispositivoController], 
     plugins=[sqla_plugin],
     debug=True)
+'''

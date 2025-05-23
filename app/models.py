@@ -17,7 +17,6 @@ class TipoDispositivo(Base):
 
     # Relación uno-a-muchos con Dispositivo:
     dispositivos: Mapped[list["Dispositivo"]] = relationship(back_populates="tipo_dispositivo")
-
 class GrupoDispositivos(Base):
     __tablename__ = "grupos_dispositivos"
 

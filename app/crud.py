@@ -1,4 +1,7 @@
+import datetime
 from enum import auto
+from re import A, U
+from tkinter import Y
 from litestar import get, post, Controller, patch, delete 
 #from dataclasses import dataclass
 #from litestar import put, delete, patch, Router
@@ -7,7 +10,7 @@ from litestar.di import Provide
 from litestar.dto import DTOData
 from litestar.exceptions import HTTPException
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import select, desc
+from sqlalchemy import DATE, select, desc, and_, or_
 from sqlalchemy.exc import IntegrityError
 from advanced_alchemy.exceptions import NotFoundError
 from advanced_alchemy.filters import ComparisonFilter, CollectionFilter
@@ -15,9 +18,10 @@ from advanced_alchemy.filters import ComparisonFilter, CollectionFilter
 from typing import Sequence
 
 from app.models import TipoDispositivo, GrupoDispositivos, Dispositivo, DispositivosAgrupados, Sensor, LecturaDato, LogEstadoDispositivo
+
+
 from app import dtos
 from app import repositories as repo
-
 '''
 Bases:
 GET: Para obtener resultados
@@ -30,6 +34,152 @@ DataTransferObjects (DTOs): Son clases que se utilizan para definir la estructur
 En vez de utilizar un return por cada función. se puede añadir como atributo de la clase.
 En la función post usamos dto para entrada de datos y en la función get usamos return_dto para salida de datos.
 '''
+
+# Crear TipoDispositivo
+def crear_tipodispositivo(session: Session, fabricante: str, modelo: str, descripcion: str) -> None:
+    with session.begin():
+        try:    
+            stmt = select(TipoDispositivo).where(TipoDispositivo.modelo == modelo)
+            allready_exist = session.execute(stmt).scalar_one_or_none()
+            if allready_exist:
+                print(f"TipoDispositivo con modelo {modelo} ya existe.")
+                return
+            else:
+                tipo_dispositivo = TipoDispositivo(fabricante=fabricante, modelo=modelo, descripcion=descripcion)
+                session.add(tipo_dispositivo)
+        except IntegrityError:
+            session.rollback()
+            print(f"Error al crear TipoDispositivo: {fabricante} {modelo}.")
+
+def crear_grupodispositivos(session: Session, nombre: str, descripcion: str) -> None:
+    with session.begin():
+        try:
+            stmt = select(GrupoDispositivos).where(GrupoDispositivos.nombre == nombre)
+            allready_exist = session.execute(stmt).scalar_one_or_none()
+            if allready_exist:
+                print(f"GrupoDispositivos con nombre '{nombre}' ya existe.")
+                return
+            else:
+                grupo = GrupoDispositivos(nombre=nombre, descripcion=descripcion)
+                session.add(grupo)
+        except IntegrityError:
+            session.rollback()
+            print(f"Error al crear GrupoDispositivos: {nombre}.")
+
+def crear_dispositivo(session: Session, numero_serie: str, mac_address: str, version_firmware: str, ubicacion: str, fecha_registro: datetime.datetime, tipo_dispositivo_id: int) -> None:
+    with session.begin():
+        try:
+            stmt = select(Dispositivo).where(
+                or_(
+                    Dispositivo.numero_serie == numero_serie,
+                    Dispositivo.mac_address == mac_address
+                )
+            )
+            allready_exist = session.execute(stmt).scalar_one_or_none()
+            if allready_exist:
+                print(f"Dispositivo con número de serie o MAC ya existente: {numero_serie} / {mac_address}")
+                return
+            else:
+                dispositivo = Dispositivo(
+                    numero_serie=numero_serie,
+                    mac_address=mac_address,
+                    version_firmware=version_firmware,
+                    ubicacion=ubicacion,
+                    fecha_registro=fecha_registro,
+                    tipo_dispositivo_id=tipo_dispositivo_id
+                )
+                session.add(dispositivo)
+        except IntegrityError:
+            session.rollback()
+            print(f"Error al crear Dispositivo: {numero_serie}.")
+
+def asociar_dispositivo_grupodispositivo(session: Session, dispositivo_id: int, grupo_dispositivo_id: int) -> None:
+    with session.begin():
+        try:
+            stmt = select(DispositivosAgrupados).where(
+                and_(
+                    DispositivosAgrupados.dispositivo_id == dispositivo_id,
+                    DispositivosAgrupados.grupo_dispositivo_id == grupo_dispositivo_id
+                )
+            )
+            allready_exist = session.execute(stmt).scalar_one_or_none()
+            if allready_exist:
+                print(f"Asociación ya existe: Dispositivo {dispositivo_id} con Grupo {grupo_dispositivo_id}")
+                return
+            else:
+                asociar = DispositivosAgrupados(
+                    dispositivo_id=dispositivo_id,
+                    grupo_dispositivo_id=grupo_dispositivo_id
+                )
+                session.add(asociar)
+        except IntegrityError:
+            session.rollback()
+            print(f"Error de integridad al asociar Dispositivo {dispositivo_id} y Grupo {grupo_dispositivo_id}")
+
+def desasociar_dispositivo_grupodispositivo(session: Session, dispositivo_id: int, grupo_dispositivo_id: int) -> None:
+    with session.begin():
+        stmt = select(DispositivosAgrupados).where(
+            and_(
+                DispositivosAgrupados.dispositivo_id == dispositivo_id,
+                DispositivosAgrupados.grupo_dispositivo_id == grupo_dispositivo_id
+            )
+        )
+        asociacion = session.execute(stmt).scalar_one_or_none()
+        if not asociacion:
+            print(f"No existe asociación entre Dispositivo {dispositivo_id} y Grupo {grupo_dispositivo_id}")
+            return
+
+        session.delete(asociacion)
+        print(f"Asociación eliminada: Dispositivo {dispositivo_id} - Grupo {grupo_dispositivo_id}")
+
+def crear_sensor(session: Session, tipo: str, unidad_medida: str, dispositivo_id: int) -> None:
+    with session.begin():
+        try:
+            sensor = Sensor(
+                tipo_sensor=tipo,
+                unidad_medida=unidad_medida,
+                dispositivo_id=dispositivo_id
+            )
+            session.add(sensor)
+        except IntegrityError:
+            session.rollback()
+            print(f"Error al crear sensor '{tipo}' para dispositivo {dispositivo_id}.")
+
+def crear_lectura_dato(session: Session, valor_leido: str, sensor_id: int) -> None:
+    with session.begin():
+        try:
+            nueva_lectura = LecturaDato(
+                valor_leido=valor_leido,
+                sensor_id=sensor_id
+            )
+            session.add(nueva_lectura)
+        except IntegrityError:
+            session.rollback()
+            print(f"Error al registrar lectura para sensor {sensor_id}")
+
+def crear_log_estado_dispositivo(session: Session, dispositivo_id: int, estado: str, mensaje: str) -> None:
+    with session.begin():
+        try:
+            stmt = (    
+                select(LogEstadoDispositivo)
+                .where(LogEstadoDispositivo.dispositivo_id == dispositivo_id)
+                .order_by(desc(LogEstadoDispositivo.id))
+                .limit(1)
+            )
+            last_log = session.execute(stmt).scalar_one_or_none()
+
+            if last_log and last_log.estado == estado:
+                return
+
+            log = LogEstadoDispositivo(
+                dispositivo_id=dispositivo_id,
+                estado=estado,
+                mensaje_opcional=mensaje
+            )
+            session.add(log)
+            #print(f"Log registrado: {estado} para dispositivo {dispositivo_id}")
+        except IntegrityError:
+            session.rollback()
 
 class TipoDispositivoController(Controller):
     path = '/tipos_dispositivos'
@@ -47,20 +197,10 @@ class TipoDispositivoController(Controller):
                          tipodispositivo_repo: repo.TipoDispositivoRepository
                          ) -> Sequence[TipoDispositivo]:
         return tipodispositivo_repo.list()
-    
+    '''
     @post("/", dto=dtos.TipoDispositivoCreateDTO)
-    async def create_item(self, 
-                          tipodispositivo_repo: repo.TipoDispositivoRepository, 
-                          data: DTOData[TipoDispositivo]
-                          ) -> TipoDispositivo:
-        try:
-            return tipodispositivo_repo.add(data.create_instance(), auto_commit=True)
-        except IntegrityError:
-            raise HTTPException(status_code=400, detail="Ya existe un TipoDispositivo con ese modelo.", extra={"YA EXISTE": "hola"})
-        except Exception as e:
-            print("ERROR EN CREATE_ITEM:", e)
-            raise HTTPException(status_code=500, detail=str(e))
-
+    async def create_item(self, tipodispositivo_repo: repo.TipoDispositivoRepository, data: DTOData[TipoDispositivo]) -> TipoDispositivo:
+    '''
 class GrupoDispositivosController(Controller):
     path = '/grupos_dispositivos'
     tags = ["Grupo"]
@@ -74,20 +214,10 @@ class GrupoDispositivosController(Controller):
                          grupodispositivos_repo: repo.GrupoDispositivosRepository
                          ) -> Sequence[GrupoDispositivos]:
         return grupodispositivos_repo.list()
-    
+    '''
     @post("/", dto=dtos.GrupoDispositivosCreateDTO)
-    async def create_item(self, 
-                          grupodispositivos_repo: repo.GrupoDispositivosRepository, 
-                          data: DTOData[GrupoDispositivos]
-                          ) -> GrupoDispositivos:
-        try:
-            return grupodispositivos_repo.add(data.create_instance(), auto_commit=True)
-        except IntegrityError:
-            raise HTTPException(status_code=400, detail="Ya existe un GrupoDispositivos con ese nombre.")
-        except Exception as e:
-            print("ERROR EN CREATE_ITEM:", e)
-            raise HTTPException(status_code=500, detail=str(e))
-
+    async def create_item(self, grupodispositivos_repo: repo.GrupoDispositivosRepository, data: DTOData[GrupoDispositivos]) -> GrupoDispositivos:
+    '''
 class DispositivoController(Controller):
     path = '/dispositivos'
     tags = ["Dispositivo"]
@@ -110,44 +240,9 @@ class DispositivoController(Controller):
                                  ) -> Sequence[Dispositivo]:
         return dispositivo_repo.list(ComparisonFilter("tipo_dispositivo_id","eq",value=tipo_dispositivo_id))
 
+    '''
     @post("/", dto=dtos.DispositivoCreateDTO)
-    async def create_item(self, 
-                          dispositivo_repo: repo.DispositivoRepository, 
-                          data: DTOData[Dispositivo]
-                          ) -> Dispositivo:
-        try:
-            return dispositivo_repo.add(data.create_instance(), auto_commit=True)
-        except IntegrityError:
-            raise HTTPException(status_code=400, detail="Ya existe un Dispositivo con ese número de serie o dirección MAC.")
-        except Exception as e:
-            print("ERROR EN CREATE_ITEM:", e)
-            raise HTTPException(status_code=500, detail=str(e))
-    ''' 
-    @patch("/{dispositivo_id:int}", dto=dtos.DispositivoCreateDTO)
-    async def asociar_grupo(self,
-                            dispositivo_id: int,
-                            grupo_id: int,
-                            dispositivo_repo: repo.DispositivoRepository,
-                            grupodispositivos_repo: repo.GrupoDispositivosRepository
-                            ) -> Dispositivo | None:
-        try:
-            grupo = grupodispositivos_repo.get(grupo_id)
-            if not grupo:
-                raise HTTPException(status_code=404, detail="Grupo no encontrado")
-
-            def actualizar(dispositivo: Dispositivo):
-                dispositivo.grupos_dispositivos.append(grupo)
-
-            dispositivo, _ = dispositivo_repo.get_and_update(
-                match_fields="id",
-                id=dispositivo_id,
-                update=actualizar,
-                auto_commit=True
-            )
-
-            return dispositivo
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error al asociar grupo: {e}")
+    async def create_item(self, dispositivo_repo: repo.DispositivoRepository, data: DTOData[Dispositivo]) -> Dispositivo:
     '''
 
 class DispositivosAgrupadosController(Controller):
@@ -179,35 +274,12 @@ class DispositivosAgrupadosController(Controller):
         return dispositivosagrupados_repo.list(ComparisonFilter("dispositivo_id","eq",value=dispositivo_id))
 
 
-    @post("/{dispositivo_id:int}/{grupo_dispositivo_id:int}", dto=dtos.DispositivosAgrupadosCreateDTO)
-    async def create_item(self, 
-                          dispositivosagrupados_repo: repo.DispositivosAgrupadosRepository, 
-                          data: DTOData[DispositivosAgrupados]
-                          ) -> DispositivosAgrupados:
-        try:
-            return dispositivosagrupados_repo.add(data.create_instance(), auto_commit=True)
-        except IntegrityError:
-            raise HTTPException(status_code=400, detail="Ya existe una asociación entre ese dispositivo y grupo.")
-        except Exception as e:
-            print("ERROR EN CREATE_ITEM:", e)
-            raise HTTPException(status_code=500, detail=str(e))
+'''    @post("/{dispositivo_id:int}/{grupo_dispositivo_id:int}", dto=dtos.DispositivosAgrupadosCreateDTO)
+    async def create_item(self, dispositivosagrupados_repo: repo.DispositivosAgrupadosRepository, data: DTOData[DispositivosAgrupados]) -> DispositivosAgrupados:
         
     @delete("/{dispositivo_id:int}/{grupo_dispositivo_id:int}")
-    async def delete_item(self, 
-                      dispositivosagrupados_repo: repo.DispositivosAgrupadosRepository,
-                      dispositivo_id: int,
-                      grupo_dispositivo_id: int
-                      ) -> None:
-        stmt = select(DispositivosAgrupados).where(
-            DispositivosAgrupados.dispositivo_id == dispositivo_id,
-            DispositivosAgrupados.grupo_dispositivo_id == grupo_dispositivo_id)
-        result = dispositivosagrupados_repo.session.execute(stmt).scalar_one_or_none()
-
-        if not result:
-            raise HTTPException(status_code=404, detail="Asociación no encontrada.")
-
-        dispositivosagrupados_repo.session.delete(result)
-        dispositivosagrupados_repo.session.commit()
+    async def delete_item(self,   dispositivosagrupados_repo: repo.DispositivosAgrupadosRepository,dispositivo_id: int,grupo_dispositivo_id: int) -> None:
+'''
 
 class SensorController(Controller):
     path = '/sensores'
@@ -230,18 +302,8 @@ class SensorController(Controller):
                                   ) -> Sequence[Sensor]:
         return sensor_repo.list(ComparisonFilter("dispositivo_id","eq",value=dispositivo_id))
     
-    @post("/", dto=dtos.SensorCreateDTO)
-    async def create_item(self, 
-                          sensor_repo: repo.SensorRepository, 
-                          data: DTOData[Sensor]
-                          ) -> Sensor:
-        try:
-            return sensor_repo.add(data.create_instance(), auto_commit=True)
-        except IntegrityError:
-            raise HTTPException(status_code=400, detail="Ya existe un Sensor con ese nombre.")
-        except Exception as e:
-            print("ERROR EN CREATE_ITEM:", e)
-            raise HTTPException(status_code=500, detail=str(e))
+'''    @post("/", dto=dtos.SensorCreateDTO)
+    async def create_item(self, sensor_repo: repo.SensorRepository, data: DTOData[Sensor]) -> Sensor:'''
         
 class LecturaDatoController(Controller):
     path = '/lecturas_datos'
@@ -272,18 +334,9 @@ class LecturaDatoController(Controller):
         result = lecturadato_repo.session.execute(stmt).scalars().all()
         return result    
     
-    @post("/", dto=dtos.LecturaDatoCreateDTO)
-    async def create_item(self, 
-                          lecturadato_repo: repo.LecturaDatoRepository, 
-                          data: DTOData[LecturaDato]
-                          ) -> LecturaDato:
-        try:
-            return lecturadato_repo.add(data.create_instance(), auto_commit=True)
-        except IntegrityError:
-            raise HTTPException(status_code=400, detail="Ya existe una Lectura con ese timestamp.")
-        except Exception as e:
-            print("ERROR EN CREATE_ITEM:", e)
-            raise HTTPException(status_code=500, detail=str(e))
+'''    @post("/", dto=dtos.LecturaDatoCreateDTO)
+    async def create_item(self, lecturadato_repo: repo.LecturaDatoRepository, data: DTOData[LecturaDato]) -> LecturaDato:
+'''
 
 class LogEstadoDispositivoController(Controller):
     path = '/logs_estado_dispositivo'
@@ -306,27 +359,5 @@ class LogEstadoDispositivoController(Controller):
                                   ) -> Sequence[LogEstadoDispositivo]:
         return logestadodispositivo_repo.list(ComparisonFilter("dispositivo_id","eq",value=dispositivo_id))
     
-    @post("/", dto=dtos.LogEstadoDispositivoCreateDTO)
-    async def create_log(self, 
-                          logestadodispositivo_repo: repo.LogEstadoDispositivoRepository, 
-                          data: DTOData[LogEstadoDispositivo]
-                          ) -> LogEstadoDispositivo:
-        try:
-            new_log = data.create_instance()
-
-            stmt = (
-                select(LogEstadoDispositivo)
-                .where(LogEstadoDispositivo.dispositivo_id == new_log.dispositivo_id)
-                .order_by(desc(LogEstadoDispositivo.timestamp))
-                .limit(1)
-            )
-            last_log = logestadodispositivo_repo.session.execute(stmt).scalar_one_or_none()
-            
-            if last_log and last_log.estado == new_log.estado:
-                raise HTTPException(status_code=400, detail="El estado ya fue registrado recientemente.")
-
-            logestadodispositivo_repo.add(new_log, auto_commit=True)
-            return new_log
-
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error al registrar log de estado: {e}")
+'''    @post("/", dto=dtos.LogEstadoDispositivoCreateDTO)
+    async def create_log(self, logestadodispositivo_repo: repo.LogEstadoDispositivoRepository, data: DTOData[LogEstadoDispositivo]) -> LogEstadoDispositivo:'''
