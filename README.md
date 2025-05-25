@@ -38,7 +38,10 @@ También se asume que si el profesor puede utilizar los comandos anteriores, no 
 
 Finalmente, debe usar `alembic upgrade head` para aplicar las migraciones hasta la más reciente del repositorio a la base de datos aplicada.
 
-# Abrir con Litestar
-
 # Ejecutar archivo main.py
 
+## Funcionamiento del Script
+
+Se ejecuta inicialmente una creación de datos en la base de datos `iot_devices` haciendo uso de todas las funciones POST.
+
+Luego, se accede a la interfaz del terminal donde se puedes realizar las consultas solicitadas en `crud.py`.

@@ -1,7 +1,5 @@
 import datetime
-from enum import auto
-from re import A, U
-from tkinter import Y
+from unittest import result
 from litestar import get, post, Controller, patch, delete 
 #from dataclasses import dataclass
 #from litestar import put, delete, patch, Router
@@ -10,7 +8,7 @@ from litestar.di import Provide
 from litestar.dto import DTOData
 from litestar.exceptions import HTTPException
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import DATE, select, desc, and_, or_
+from sqlalchemy import select, desc, and_, or_
 from sqlalchemy.exc import IntegrityError
 from advanced_alchemy.exceptions import NotFoundError
 from advanced_alchemy.filters import ComparisonFilter, CollectionFilter
@@ -35,6 +33,8 @@ En vez de utilizar un return por cada función. se puede añadir como atributo d
 En la función post usamos dto para entrada de datos y en la función get usamos return_dto para salida de datos.
 '''
 
+''' FUNCIONES POST '''
+
 # Crear TipoDispositivo
 def crear_tipodispositivo(session: Session, fabricante: str, modelo: str, descripcion: str) -> None:
     with session.begin():
@@ -51,6 +51,7 @@ def crear_tipodispositivo(session: Session, fabricante: str, modelo: str, descri
             session.rollback()
             print(f"Error al crear TipoDispositivo: {fabricante} {modelo}.")
 
+# Crear GrupoDispositivos
 def crear_grupodispositivos(session: Session, nombre: str, descripcion: str) -> None:
     with session.begin():
         try:
@@ -66,6 +67,7 @@ def crear_grupodispositivos(session: Session, nombre: str, descripcion: str) -> 
             session.rollback()
             print(f"Error al crear GrupoDispositivos: {nombre}.")
 
+# Crear Dispositivo
 def crear_dispositivo(session: Session, numero_serie: str, mac_address: str, version_firmware: str, ubicacion: str, fecha_registro: datetime.datetime, tipo_dispositivo_id: int) -> None:
     with session.begin():
         try:
@@ -93,6 +95,8 @@ def crear_dispositivo(session: Session, numero_serie: str, mac_address: str, ver
             session.rollback()
             print(f"Error al crear Dispositivo: {numero_serie}.")
 
+# Crear DispositivosAgrupados
+# Esta función asocia un dispositivo a un grupo de dispositivos.
 def asociar_dispositivo_grupodispositivo(session: Session, dispositivo_id: int, grupo_dispositivo_id: int) -> None:
     with session.begin():
         try:
@@ -116,6 +120,8 @@ def asociar_dispositivo_grupodispositivo(session: Session, dispositivo_id: int, 
             session.rollback()
             print(f"Error de integridad al asociar Dispositivo {dispositivo_id} y Grupo {grupo_dispositivo_id}")
 
+# Desasociar DispositivosAgrupados
+# Esta función elimina la asociación entre un dispositivo y un grupo de dispositivos.
 def desasociar_dispositivo_grupodispositivo(session: Session, dispositivo_id: int, grupo_dispositivo_id: int) -> None:
     with session.begin():
         stmt = select(DispositivosAgrupados).where(
@@ -132,6 +138,7 @@ def desasociar_dispositivo_grupodispositivo(session: Session, dispositivo_id: in
         session.delete(asociacion)
         print(f"Asociación eliminada: Dispositivo {dispositivo_id} - Grupo {grupo_dispositivo_id}")
 
+# Crear Sensor
 def crear_sensor(session: Session, tipo: str, unidad_medida: str, dispositivo_id: int) -> None:
     with session.begin():
         try:
@@ -145,6 +152,7 @@ def crear_sensor(session: Session, tipo: str, unidad_medida: str, dispositivo_id
             session.rollback()
             print(f"Error al crear sensor '{tipo}' para dispositivo {dispositivo_id}.")
 
+# Crear LecturaDato
 def crear_lectura_dato(session: Session, valor_leido: str, sensor_id: int) -> None:
     with session.begin():
         try:
@@ -157,6 +165,7 @@ def crear_lectura_dato(session: Session, valor_leido: str, sensor_id: int) -> No
             session.rollback()
             print(f"Error al registrar lectura para sensor {sensor_id}")
 
+# Crear LogEstadoDispositivo
 def crear_log_estado_dispositivo(session: Session, dispositivo_id: int, estado: str, mensaje: str) -> None:
     with session.begin():
         try:
@@ -180,6 +189,144 @@ def crear_log_estado_dispositivo(session: Session, dispositivo_id: int, estado: 
             #print(f"Log registrado: {estado} para dispositivo {dispositivo_id}")
         except IntegrityError:
             session.rollback()
+
+''' FUNCIONES GET '''
+
+# Obtener todos los Tipos de Dispositivo
+def get_tipos_dispositivo(session: Session) -> None:
+    with session.begin():
+        stmt = select(TipoDispositivo)
+        results = session.execute(stmt).scalars().all()
+
+        if not results:
+            print("No hay Tipos de Dispositivo registrados.")
+            return
+
+        print("Tipos de Dispositivo registrados:")
+        for tipo in results:
+            print(f"ID: {tipo.id} | Modelo: {tipo.modelo} | Fabricante: {tipo.fabricante} | Descripción: {tipo.descripcion}")
+
+# Obtener todos los Grupos de Dispositivos
+def get_grupos_dispositivos(session: Session) -> None:
+    with session.begin():
+        stmt = select(GrupoDispositivos)
+        results = session.execute(stmt).scalars().all()
+
+        if not results:
+            print("No hay Grupos de Dispositivos registrados.")
+            return
+
+        print("Grupos de Dispositivos registrados:")
+        for grupo in results:
+            print(f"ID: {grupo.id} | Nombre: {grupo.nombre} | Descripción: {grupo.descripcion}")
+
+# Obtener todos los Dispositivos  
+def get_dispositivos(session: Session) -> None:
+    with session.begin():
+        stmt = select(Dispositivo)
+        results = session.execute(stmt).scalars().all()
+
+        if not results:
+            print("No hay Dispositivos registrados.")
+            return
+
+        print("Dispositivos registrados:")
+        for device in results:
+            print(f"ID: {device.id} | N° Serie: {device.numero_serie} | MAC: {device.mac_address} | Firmware: {device.version_firmware} | Ubicación: {device.ubicacion} | Tipo ID: {device.tipo_dispositivo_id}")
+
+# Obtener Dispositivos Filtrados por TipoDispositivo
+def get_dispositivos_by_tipo(session: Session, tipo_dispositivo_id: int) -> None:
+    with session.begin():
+        stmt = select(Dispositivo).where(Dispositivo.tipo_dispositivo_id == tipo_dispositivo_id)
+        results = session.execute(stmt).scalars().all()
+
+        if not results:
+            print(f"No hay Dispositivos registrados para el Tipo ID {tipo_dispositivo_id}.")
+            return
+
+        print(f"Dispositivos registrados para el Tipo de Dispositivo con ID: {tipo_dispositivo_id}:")
+        for device in results:
+            print(f"ID: {device.id} | N° Serie: {device.numero_serie} | MAC: {device.mac_address} | Firmware: {device.version_firmware} | Ubicación: {device.ubicacion}")
+
+
+# Obtener Dispositivos asociados a un GrupoDispositivo
+def get_dispositivos_by_grupo(session: Session, grupo_dispositivo_id: int) -> None:
+    with session.begin():
+        stmt = (
+            select(Dispositivo)
+            .join(DispositivosAgrupados)
+            .where(DispositivosAgrupados.grupo_dispositivo_id == grupo_dispositivo_id)
+        )
+
+        results = session.execute(stmt).scalars().all()
+        if not results:
+            print(f"No hay dispositivos asociados al grupo con ID {grupo_dispositivo_id}.")
+            return
+        
+        for device in results:
+            print(f"ID: {device.id} | N° Serie: {device.numero_serie} | MAC: {device.mac_address} | Firmware: {device.version_firmware} | Ubicación: {device.ubicacion}")
+
+# Obtener GrupoDispositivo asociados a un Dispositivo
+def get_grupos_by_dispositivo(session: Session, dispositivo_id: int) -> None:
+    with session.begin():
+        stmt = (
+            select(GrupoDispositivos)
+            .join(DispositivosAgrupados)
+            .where(DispositivosAgrupados.dispositivo_id == dispositivo_id)
+        )
+
+        results = session.execute(stmt).scalars().all()
+
+        if not results:
+            print(f"No hay grupos asociados al dispositivo con ID {dispositivo_id}.")
+            return
+
+        for group in results:
+            print(f"ID: {group.id} | Nombre: {group.nombre} | Descripción: {group.descripcion}")
+
+# Obtener todos los Sensores asociados a un Dispositivo
+def get_sensores_by_dispositivo(session: Session, dispositivo_id: int) -> None:
+    with session.begin():
+        stmt = select(Sensor).where(Sensor.dispositivo_id == dispositivo_id)
+        results = session.execute(stmt).scalars().all()
+
+        if not results:
+            print(f"No hay sensores asociados al dispositivo con ID {dispositivo_id}.")
+            return
+
+        for sensor in results:
+            print(f"ID: {sensor.id} | Tipo: {sensor.tipo_sensor} | Unidad: {sensor.unidad_medida}")
+
+# Obtener las últimas N lecturaDatos de un Sensor específico
+def get_lectura_datos_by_sensor(session: Session, sensor_id: int, n: int) -> None:
+    with session.begin():
+        stmt = (
+            select(LecturaDato)
+            .where(LecturaDato.sensor_id == sensor_id)
+            .order_by(desc(LecturaDato.timestamp))
+            .limit(n)
+        )
+        results = session.execute(stmt).scalars().all()
+
+        if not results:
+            print(f"No hay lecturas para el sensor con ID {sensor_id}.")
+            return
+
+        for lectura in results:
+            print(f"ID: {lectura.id} | Valor: {lectura.valor_leido} | Timestamp: {lectura.timestamp}")
+
+# Obtener todos los LogsEstadoDispositivo de un Dispositivo
+def get_logs_by_dispositivo(session: Session, dispositivo_id: int) -> None:
+    with session.begin():
+        stmt = select(LogEstadoDispositivo).where(LogEstadoDispositivo.dispositivo_id == dispositivo_id)
+        results = session.execute(stmt).scalars().all()
+
+        if not results:
+            print(f"No hay logs para el dispositivo con ID {dispositivo_id}.")
+            return
+
+        for log in results:
+            print(f"ID: {log.id} | Estado: {log.estado} | Mensaje: {log.mensaje_opcional} | Timestamp: {log.timestamp}")
 
 class TipoDispositivoController(Controller):
     path = '/tipos_dispositivos'
