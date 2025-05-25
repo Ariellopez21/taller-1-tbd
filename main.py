@@ -1,11 +1,10 @@
-from faker import Faker
 import random
-import datetime
+from faker import Faker
+from sqlalchemy import select
 
 from app.database import create_database, Session
 from app import crud
 from app.models import TipoDispositivo, GrupoDispositivos, Dispositivo, Sensor
-from sqlalchemy import select
 
 
 def simulacion():
@@ -53,16 +52,6 @@ def simulacion():
                 grupo_dispositivo_id=random.choice(grupo_dispositivos_id_inDB)
             )   
 
-    # Desasociar
-    '''
-    with Session() as session:
-        crud.desasociar_dispositivo_grupodispositivo(
-            session=session,
-            dispositivo_id=1,
-            grupo_dispositivo_id=2
-        )
-    '''
-
     # 5. Sensor
 
     generic_sensors = ["ESP32","ESP32-CAM","ESP32-WROOM","ESP8266","NodeMCU","BME280","DHT11","DHT22","BMP180","BMP280","MQ-2","MQ-135","HC-SR04","PIR Motion Sensor","LDR","DS18B20","GY-521 (MPU6050)","HX711","MAX30100","RC522","TCS34725","VL53L0X","INA219","LM35","ACS712"]
@@ -100,16 +89,14 @@ def simulacion():
                 dispositivo_id=random.choice(dispositivo_id_inDB),
                 estado=random.choice(log_states),
                 mensaje=fake.sentence(),
-            )
+            )  
 
 def interfaz_consola():
-    print("=====================================")
+    print("===============================================")
     print("BIENVENIDO A LA SIMULACIÓN DE DISPOSITIVOS IoT")
-    print("Esta simulación asume que el usuario sabe lo que está haciendo.")
-    print("Por lo que solo se deben realizar consultas a IDs existentes en la base de datos.")
-    print("=====================================")
+    print("===============================================")
     while True:
-        print("\nMENÚ PRINCIPAL - CONSULTAS")
+
         print("1. Ver todos los Tipos de Dispositivo")
         print("2. Ver todos los Grupos de Dispositivos")
         print("3. Ver todos los Dispositivos")
@@ -119,46 +106,67 @@ def interfaz_consola():
         print("7. Ver Sensores por un Dispositivo")
         print("8. Ver Lecturas por un Sensor")
         print("9. Ver Logs de Estado por un Dispositivo")
+        print("10. Asociar Dispositivo a Grupo de Dispositivos")
+        print("11. Desasociar Dispositivo de Grupo de Dispositivos")
         print("0. Salir")
 
         opcion = input("Selecciona una opción: ").strip()
         
         with Session() as session:
-            if opcion == "1":
-                crud.get_tipos_dispositivo(session)
-            elif opcion == "2":
-                crud.get_grupos_dispositivos(session)
-            elif opcion == "3":
-                crud.get_dispositivos(session)
-            elif opcion == "4":
-                tipo_dispositivo_id = int(input("Selecciona un ID de Tipo de Dispositivo: "))
-                crud.get_dispositivos_by_tipo(session=session, tipo_dispositivo_id=tipo_dispositivo_id)
-            elif opcion == "5":
-                grupo_dispositivo_id = int(input("Selecciona un ID de Grupo de Dispositivos: "))
-                crud.get_dispositivos_by_grupo(session=session, grupo_dispositivo_id=grupo_dispositivo_id)
-            elif opcion == "6":
-                dispositivo_id = int(input("Selecciona un ID de Dispositivo: "))
-                crud.get_grupos_by_dispositivo(session=session, dispositivo_id=dispositivo_id)
-            elif opcion == "7":
-                dispositivo_id = int(input("Selecciona un ID de Dispositivo: "))
-                crud.get_sensores_by_dispositivo(session=session, dispositivo_id=dispositivo_id)
-            elif opcion == "8":
-                sensor_id = int(input("Selecciona un ID de Sensor: "))
-                nro = int(input("Selecciona el número de lecturas a mostrar: "))
-                crud.get_lectura_datos_by_sensor(session=session, sensor_id=sensor_id, n=nro)
-            elif opcion == "9":
-                dispositivo_id = int(input("Selecciona un ID de Dispositivo: "))
-                crud.get_logs_by_dispositivo(session=session, dispositivo_id=dispositivo_id)
-            elif opcion == "0":
-                print("Fin del programa.")
-                break
-            else:
-                print("Opción no válida. Intenta de nuevo.")
+            match opcion:
+                case "1":
+                    crud.get_tipos_dispositivo(session)
+                case "2":
+                    crud.get_grupos_dispositivos(session)
+                case "3":
+                    crud.get_dispositivos(session)
+                case "4":
+                    tipo_dispositivo_id = int(input("Selecciona un ID de Tipo de Dispositivo: "))
+                    crud.get_dispositivos_by_tipo(session=session, tipo_dispositivo_id=tipo_dispositivo_id)
+                case "5":
+                    grupo_dispositivo_id = int(input("Selecciona un ID de Grupo de Dispositivos: "))
+                    crud.get_dispositivos_by_grupo(session=session, grupo_dispositivo_id=grupo_dispositivo_id)
+                case "6":
+                    dispositivo_id = int(input("Selecciona un ID de Dispositivo: "))
+                    crud.get_grupos_by_dispositivo(session=session, dispositivo_id=dispositivo_id)
+                case "7":
+                    dispositivo_id = int(input("Selecciona un ID de Dispositivo: "))
+                    crud.get_sensores_by_dispositivo(session=session, dispositivo_id=dispositivo_id)
+                case "8":
+                    sensor_id = int(input("Selecciona un ID de Sensor: "))
+                    nro = int(input("Selecciona el número de lecturas a mostrar: "))
+                    crud.get_lectura_datos_by_sensor(session=session, sensor_id=sensor_id, n=nro)
+                case "9":
+                    dispositivo_id = int(input("Selecciona un ID de Dispositivo: "))
+                    crud.get_logs_by_dispositivo(session=session, dispositivo_id=dispositivo_id)
+                case "10":
+                    dispositivo_id = int(input("Selecciona un ID de Dispositivo: "))
+                    grupo_dispositivo_id = int(input("Selecciona un ID de Grupo de Dispositivos: "))
+                    crud.asociar_dispositivo_grupodispositivo(session=session, dispositivo_id=dispositivo_id, grupo_dispositivo_id=grupo_dispositivo_id)
+                case "11":
+                    dispositivo_id = int(input("Selecciona un ID de Dispositivo: "))
+                    grupo_dispositivo_id = int(input("Selecciona un ID de Grupo de Dispositivos: "))
+                    crud.desasociar_dispositivo_grupodispositivo(session=session, dispositivo_id=dispositivo_id, grupo_dispositivo_id=grupo_dispositivo_id)
+                case "0":
+                    print("Fin del programa.")
+                    break
+                case _:
+                    print("Opción no válida. Intenta de nuevo.")
     
+def alembic_version():
+    version = input("Versión de Migración de DB (1/2): ")
+
+    if version == "1":
+        simulacion()
+    elif version == "2":
+        #cargar_datos_version_2()
+        pass
+    else:
+        print("Versión no válida")    
 
 
 if __name__ == "__main__":
     create_database()
     fake = Faker()
-    simulacion()
+    alembic_version()
     interfaz_consola()

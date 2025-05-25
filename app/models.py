@@ -6,7 +6,6 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 class Base(DeclarativeBase):
     pass
 
-# Representa un tipo o modelo de dispositivo (ej. 'Raspberry Pi 4', 'ESP32 Temp Sensor v2').
 class TipoDispositivo(Base):
     __tablename__ = "tipos_dispositivos"
 
@@ -95,9 +94,3 @@ class DispositivosAgrupados(Base):
 
     dispositivo_id: Mapped[int] = mapped_column(ForeignKey("dispositivos.id"), primary_key=True)
     grupo_dispositivo_id: Mapped[int] = mapped_column(ForeignKey("grupos_dispositivos.id"), primary_key=True)
-    
-    # Relación muchos-a-uno con Dispositivo:
-    #dispositivo: Mapped["Dispositivo"] = relationship(back_populates="grupos_dispositivos")
-    # Relación muchos-a-uno con GrupoDispositivos:
-    #grupo_dispositivo: Mapped["GrupoDispositivos"] = relationship(back_populates="dispositivos")
-    
