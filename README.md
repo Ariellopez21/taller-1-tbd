@@ -4,10 +4,10 @@ El proyecto utiliza `Python` como lenguaje de programación principal, gestionan
 
 Se utiliza como gestor del entorno y dependencias a `uv` y a través del mismo se instalan los siguientes paquetes:
 
-- SQLAlchemy: Define los modelos y gestiona la interacción con PostgreSQL.
-- Alembic: Gestor de migraciones que permite realizar cambios en la base de datos de manera segura.
-- Faker: Para la generación de datos aleatorios.
-- psycopg2: Para comunicarse con la base de datos.
+- `SQLAlchemy`: Define los modelos y gestiona la interacción con PostgreSQL.
+- `Alembic`: Gestor de migraciones que permite realizar cambios en la base de datos de manera segura.
+- `Faker`: Para la generación de datos aleatorios.
+- `psycopg2`: Para comunicarse con la base de datos.
 
 Se utilizan los siguientes archivos `.py`:
 
@@ -54,23 +54,25 @@ También se asume que si el profesor puede utilizar los comandos anteriores, no 
 
 ### Migración V1
 
-Debe ejecutar el siguiente comando antes de entrar al Script `main.py`:
+Debe ejecutar el siguiente comando para ver la primera migración:
 
 ```
 alembic upgrade a0d479e947b1
 ```
 
-Para aplicar la migración de la base de datos a su primera versión.
+> No ejecute main.py aún.
 
 ### Migración V2
 
-Luego de ejecutar `main.py` y explorar lo que se puede hacer (que eso se explica en la siguiente sección), debe ejecutar:
+Luego de ejecutar crear la primera versión de alembic, debe ejecutar:
 
 ```
 alembic upgrade head
 ```
 
 Así, la migración de la base de datos estará en su segunda versión (y final).
+
+> A partir de ahora puede utilizar main.py
 
 
 # Ejecutar archivo main.py
@@ -83,13 +85,6 @@ Debe estar en la carpeta `taller-1`, tener activo el entorno virtual `.venv` y e
 
 ## Funcionamiento del Script
 
-Usted debe elegir la versión de la base de datos que está usando.
-
-- Sí ejecutó  `alembic upgrade a0d479e947b1`, debe elegir la opción 1.
-- Sí ejecutó  `alembic upgrade head`, debe elegir la opción 2.
-
-> En el script, solo se crean datos cuando se está en la versión 1 de la base de datos; pero en la versión 2 de la base de datos se puede hacer consultas.
-
 Se ejecuta inicialmente una creación de datos en la base de datos `iot_devices` haciendo uso de todas las funciones POST.
 
 Luego, se accede a la interfaz del terminal donde se puedes realizar las consultas en `crud.py`.
@@ -101,7 +96,7 @@ Además de ellas, se pueden utilizar las funciones PATCH relaciondas a la asocia
 # Estructura del proyecto
 
 Esta debe ser tu estructura del proyecto para la correcta ejecución de los pasos anteriores.
-
+```
 TALLER-1/
 ├── .venv/
 ├── alembic/
@@ -118,3 +113,4 @@ TALLER-1/
 ├── uv.lock
 ├── README.md
 └── .gitignore
+```
