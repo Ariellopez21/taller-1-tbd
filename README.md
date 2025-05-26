@@ -48,7 +48,7 @@ Se asume que el profesor tiene la configuración de usuario con permisos necesar
 $ createdb iot_devices
 ```
 
-> Sí ya existe, la tiene se debe dropear con `dropdb iot_devices`.
+> Sí ya existe la base de datos, la tiene que dropear con `dropdb iot_devices`.
 
 También se asume que si el profesor puede utilizar los comandos anteriores, no debe tener problemas para usar `sqlalchemy.url = postgresql+psycopg2:///iot_devices`, ya que el usuario tiene los permisos para ingresar sin contraseña porque el nombre del mismo es el del S.O. actual.
 
@@ -64,7 +64,7 @@ alembic upgrade a0d479e947b1
 
 ### Migración V2
 
-Luego de ejecutar crear la primera versión de alembic, debe ejecutar:
+Luego de crear la primera versión de alembic, y corroborar que la base de datos existe, debe ejecutar:
 
 ```
 alembic upgrade head
@@ -114,3 +114,5 @@ TALLER-1/
 ├── README.md
 └── .gitignore
 ```
+
+> Ariel López S. - arilopez@umag.cl
