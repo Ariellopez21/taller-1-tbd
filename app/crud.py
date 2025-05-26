@@ -216,7 +216,21 @@ def get_dispositivos(session: Session) -> None:
 
         print("Dispositivos registrados:")
         for device in results:
-            print(f"ID: {device.id} | N° Serie: {device.numero_serie} | MAC: {device.mac_address} | Firmware: {device.version_firmware} | Ubicación: {device.ubicacion} | Tipo ID: {device.tipo_dispositivo_id}")
+            print(f"ID: {device.id} | N° Serie: {device.numero_serie} | MAC: {device.mac_address} | Firmware: {device.version_firmware} | Ubicación: {device.descripcion_ubicacion} | Tipo ID: {device.tipo_dispositivo_id}")
+
+# MIGRACION V2: Obtener todos los Dispositivos con los campos nuevos:
+def get_dispositivos_v2(session: Session) -> None:
+    with session.begin():
+        stmt = select(Dispositivo)
+        results = session.execute(stmt).scalars().all()
+
+        if not results:
+            print("No hay Dispositivos registrados.")
+            return
+
+        print("Dispositivos registrados:")
+        for device in results:
+            print(f"ID: {device.id} | N° Serie: {device.numero_serie} | MAC: {device.mac_address} | Firmware: {device.version_firmware} | Descripción Ubicación: {device.descripcion_ubicacion} | Coordenadas GPS: {device.coordenadas_gps} | Estado_actual: {device.estado_actual} | Tipo ID: {device.tipo_dispositivo_id}")
 
 # Obtener Dispositivos Filtrados por TipoDispositivo
 def get_dispositivos_by_tipo(session: Session, tipo_dispositivo_id: int) -> None:
@@ -228,8 +242,23 @@ def get_dispositivos_by_tipo(session: Session, tipo_dispositivo_id: int) -> None
             print(f"No hay Dispositivos registrados para el Tipo de Dispositivo con ID {tipo_dispositivo_id}.")
             return
 
+        print(f"Dispositivos registrados para el Tipo de Dispositivo con ID: {tipo_dispositivo_id}:")
         for device in results:
-            print(f"ID: {device.id} | N° Serie: {device.numero_serie} | MAC: {device.mac_address} | Firmware: {device.version_firmware} | Ubicación: {device.ubicacion}")
+            print(f"ID: {device.id} | N° Serie: {device.numero_serie} | MAC: {device.mac_address} | Firmware: {device.version_firmware} | Ubicación: {device.descripcion_ubicacion}")
+
+# MIGRACIÓN V2: Obtener Dispositivos Filtrados por TipoDispositivo con los campos nuevos:
+def get_dispositivos_by_tipo_v2(session: Session, tipo_dispositivo_id: int) -> None:
+    with session.begin():
+        stmt = select(Dispositivo).where(Dispositivo.tipo_dispositivo_id == tipo_dispositivo_id)
+        results = session.execute(stmt).scalars().all()
+
+        if not results:
+            print(f"No hay Dispositivos registrados para el Tipo de Dispositivo con ID {tipo_dispositivo_id}.")
+            return
+
+        print(f"Dispositivos registrados para el Tipo de Dispositivo con ID: {tipo_dispositivo_id}:")
+        for device in results:
+            print(f"ID: {device.id} | N° Serie: {device.numero_serie} | MAC: {device.mac_address} | Firmware: {device.version_firmware} | Descripción Ubicación: {device.descripcion_ubicacion} | Coordenadas GPS: {device.coordenadas_gps} | Estado_actual: {device.estado_actual} | Tipo ID: {device.tipo_dispositivo_id}")
 
 
 # Obtener Dispositivos asociados a un GrupoDispositivo
@@ -247,7 +276,25 @@ def get_dispositivos_by_grupo(session: Session, grupo_dispositivo_id: int) -> No
             return
         
         for device in results:
-            print(f"ID: {device.id} | N° Serie: {device.numero_serie} | MAC: {device.mac_address} | Firmware: {device.version_firmware} | Ubicación: {device.ubicacion}")
+            print(f"ID: {device.id} | N° Serie: {device.numero_serie} | MAC: {device.mac_address} | Firmware: {device.version_firmware} | Ubicación: {device.descripcion_ubicacion}")
+
+# MIGRACIÓN V2: Obtener Dispositivos asociados a un GrupoDispositivo con los campos nuevos:
+def get_dispositivos_by_grupo_v2(session: Session, grupo_dispositivo_id: int) -> None:
+    with session.begin():
+        stmt = (
+            select(Dispositivo)
+            .join(DispositivosAgrupados)
+            .where(DispositivosAgrupados.grupo_dispositivo_id == grupo_dispositivo_id)
+        )
+
+        results = session.execute(stmt).scalars().all()
+        if not results:
+            print(f"No hay dispositivos asociados al grupo con ID {grupo_dispositivo_id}.")
+            return
+        
+        for device in results:
+            print(f"ID: {device.id} | N° Serie: {device.numero_serie} | MAC: {device.mac_address} | Firmware: {device.version_firmware} | Descripción Ubicación: {device.descripcion_ubicacion} | Coordenadas GPS: {device.coordenadas_gps} | Estado_actual: {device.estado_actual} | Tipo ID: {device.tipo_dispositivo_id}")
+
 
 # Obtener GrupoDispositivo asociados a un Dispositivo
 def get_grupos_by_dispositivo(session: Session, dispositivo_id: int) -> None:
@@ -279,6 +326,20 @@ def get_sensores_by_dispositivo(session: Session, dispositivo_id: int) -> None:
 
         for sensor in results:
             print(f"ID: {sensor.id} | Tipo: {sensor.tipo_sensor} | Unidad: {sensor.unidad_medida}")
+
+# MIGRACIÓN V2: Obtener todos los Sensores asociados a un Dispositivo con los campos nuevos:
+def get_sensores_by_dispositivo_v2(session: Session, dispositivo_id: int) -> None:
+    with session.begin():
+        stmt = select(Sensor).where(Sensor.dispositivo_id == dispositivo_id)
+        results = session.execute(stmt).scalars().all()
+
+        if not results:
+            print(f"No hay sensores asociados al dispositivo con ID {dispositivo_id}.")
+            return
+
+        for sensor in results:
+            print(f"ID: {sensor.id} | Tipo: {sensor.tipo_sensor} | Unidad: {sensor.unidad_medida} | Umbral Alerta: {sensor.umbral_alerta}")
+
 
 # Obtener las últimas N lecturaDatos de un Sensor específico
 def get_lectura_datos_by_sensor(session: Session, sensor_id: int, n: int) -> None:

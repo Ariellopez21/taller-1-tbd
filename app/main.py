@@ -6,6 +6,7 @@ from app.database import create_database, Session
 from app import crud
 from app.models import TipoDispositivo, GrupoDispositivos, Dispositivo, Sensor
 
+DB_VERSION = None
 
 def simulacion():
 
@@ -119,19 +120,31 @@ def interfaz_consola():
                 case "2":
                     crud.get_grupos_dispositivos(session)
                 case "3":
-                    crud.get_dispositivos(session)
+                    if DB_VERSION == 1:
+                        crud.get_dispositivos(session)
+                    elif DB_VERSION == 2:
+                        crud.get_dispositivos_v2(session)
                 case "4":
                     tipo_dispositivo_id = int(input("Selecciona un ID de Tipo de Dispositivo: "))
-                    crud.get_dispositivos_by_tipo(session=session, tipo_dispositivo_id=tipo_dispositivo_id)
+                    if DB_VERSION == 1:
+                        crud.get_dispositivos_by_tipo(session=session, tipo_dispositivo_id=tipo_dispositivo_id)
+                    elif DB_VERSION == 2:
+                        crud.get_dispositivos_by_tipo_v2(session=session, tipo_dispositivo_id=tipo_dispositivo_id)
                 case "5":
                     grupo_dispositivo_id = int(input("Selecciona un ID de Grupo de Dispositivos: "))
-                    crud.get_dispositivos_by_grupo(session=session, grupo_dispositivo_id=grupo_dispositivo_id)
+                    if DB_VERSION == 1:
+                        crud.get_dispositivos_by_grupo(session=session, grupo_dispositivo_id=grupo_dispositivo_id)
+                    elif DB_VERSION == 2:
+                        crud.get_dispositivos_by_grupo_v2(session=session, grupo_dispositivo_id=grupo_dispositivo_id)
                 case "6":
                     dispositivo_id = int(input("Selecciona un ID de Dispositivo: "))
                     crud.get_grupos_by_dispositivo(session=session, dispositivo_id=dispositivo_id)
                 case "7":
                     dispositivo_id = int(input("Selecciona un ID de Dispositivo: "))
-                    crud.get_sensores_by_dispositivo(session=session, dispositivo_id=dispositivo_id)
+                    if DB_VERSION == 1:
+                        crud.get_sensores_by_dispositivo(session=session, dispositivo_id=dispositivo_id)
+                    elif DB_VERSION == 2:
+                        crud.get_sensores_by_dispositivo_v2(session=session, dispositivo_id=dispositivo_id)
                 case "8":
                     sensor_id = int(input("Selecciona un ID de Sensor: "))
                     nro = int(input("Selecciona el número de lecturas a mostrar: "))
@@ -154,19 +167,25 @@ def interfaz_consola():
                     print("Opción no válida. Intenta de nuevo.")
     
 def alembic_version():
+    global DB_VERSION
     version = input("Versión de Migración de DB (1/2): ")
 
     if version == "1":
-        simulacion()
+        DB_VERSION = 1
+        try: 
+            simulacion()
+            interfaz_consola()
+        except Exception:
+            print("Usted está usando una migración que no corresponde a la v1: 'a0d479e947b1'.")
     elif version == "2":
-        #cargar_datos_version_2()
-        pass
+        DB_VERSION = 2
+        print("Ingresando a base de datos con Migración v2")
+        interfaz_consola()
     else:
+        DB_VERSION = None
         print("Versión no válida")    
-
 
 if __name__ == "__main__":
     create_database()
     fake = Faker()
     alembic_version()
-    interfaz_consola()

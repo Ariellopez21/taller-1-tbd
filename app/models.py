@@ -1,6 +1,6 @@
 import datetime
 from typing import Optional
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, String, Float
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 class Base(DeclarativeBase):
@@ -34,8 +34,15 @@ class Dispositivo(Base):
     numero_serie: Mapped[str] = mapped_column(String(50), unique=True)
     mac_address: Mapped[Optional[str]] = mapped_column(String(50), unique=True)
     version_firmware: Mapped[str] = mapped_column(String(50))
-    ubicacion: Mapped[str] = mapped_column(String(200))
+    
+    # Modificación 3
+    descripcion_ubicacion: Mapped[str] = mapped_column(String(200))  
+    coordenadas_gps: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  
+    
     fecha_registro: Mapped[datetime.datetime] = mapped_column(default=datetime.datetime.now)
+
+    # Modificación 2
+    estado_actual: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
 
     # Relación muchos-a-uno con TipoDispositivo:
     tipo_dispositivo_id: Mapped[int] = mapped_column(ForeignKey("tipos_dispositivos.id"))
@@ -57,6 +64,9 @@ class Sensor(Base):
     id: Mapped[int] = mapped_column(primary_key=True) 
     tipo_sensor: Mapped[str] = mapped_column(String(50))
     unidad_medida: Mapped[str] = mapped_column(String(20))
+
+    # Modificación 1
+    umbral_alerta: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
     # Relación muchos-a-uno con Dispositivo:
     dispositivo_id: Mapped[int] = mapped_column(ForeignKey("dispositivos.id"))
