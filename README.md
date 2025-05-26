@@ -77,10 +77,10 @@ Así, la migración de la base de datos estará en su segunda versión (y final)
 
 # Ejecutar archivo main.py
 
-Debe estar en la carpeta `taller-1`, tener activo el entorno virtual `.venv` y ejecutar la siguiente linea:
+Debe estar en la carpeta `taller-1-tbd`, tener activo el entorno virtual `.venv` y ejecutar la siguiente linea:
 
 ```
-(.venv):~/taller-1$ python3 -m app.main
+(.venv):~/taller-1-tbd$ python3 -m app.main
 ```
 
 ## Funcionamiento del Script
@@ -97,7 +97,7 @@ Además de ellas, se pueden utilizar las funciones PATCH relaciondas a la asocia
 
 Esta debe ser tu estructura del proyecto para la correcta ejecución de los pasos anteriores.
 ```
-TALLER-1/
+taller-1-tbd/
 ├── .venv/
 ├── alembic/
 │   ├── versions/
